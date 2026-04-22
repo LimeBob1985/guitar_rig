@@ -4,13 +4,14 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+
     scripts:
       - name: Install Flutter dependencies
         script: flutter pub get
 
       - name: Build iOS IPA (unsigned)
         script: |
-          flutter build ipa --no-codesign
+          flutter build ipa --release --no-codesign
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -18,5 +19,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - robyalaimo1985@gmail.com
-        
+          - robyalaimo85@gmail.com
