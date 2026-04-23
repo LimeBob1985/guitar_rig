@@ -33,8 +33,8 @@ class AppProvider extends ChangeNotifier {
   String currentNote = "-";
 
   // ⭐ MUTE SEPARATI
-  bool isMuted = false;        // Mute del MIXER
-  bool isTunerMuted = false;   // Mute del TUNER
+  bool isMuted = false;        
+  bool isTunerMuted = false;   
 
   // OFFSET ACCORDATURA
   int tuningOffset = 0;
@@ -170,7 +170,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- MUTE TUNER (NUOVO) ---
+  // --- MUTE TUNER ---
   void toggleTunerMute() {
     isTunerMuted = !isTunerMuted;
     _syncAudio();
@@ -271,6 +271,33 @@ class AppProvider extends ChangeNotifier {
       double driven = signal * gain;
       signal = _tanh(driven);
     }
+
+    // ⭐⭐⭐ EQ REALISTICO PER-PEDALE (HELIX STYLE) ⭐⭐⭐
+    double bass = 0.0;
+    double mid = 0.0;
+    double treble = 0.0;
+
+    currentPedals.forEach((pedal, value) {
+      if (value > 0 && pedalEQ.containsKey(pedal)) {
+        bass += (pedalEQ[pedal]!["Bass"] ?? 0.0) * (value / 10);
+        mid += (pedalEQ[pedal]!["Mid"] ?? 0.0) * (value / 10);
+        treble += (pedalEQ[pedal]!["Treble"] ?? 0.0) * (value / 10);
+      }
+    });
+
+    bass = bass.clamp(-10.0, 10.0);
+    mid = mid.clamp(-10.0, 10.0);
+    treble = treble.clamp(-10.0, 10.0);
+
+    // Low-shelf (bassi)
+    signal *= (1.0 + (bass / 40.0));
+
+    // Peak (medi)
+    signal *= (1.0 + (mid / 55.0));
+
+    // High-shelf (alti)
+    signal *= (1.0 + (treble / 35.0));
+    // ⭐⭐⭐ FINE EQ REALISTICO ⭐⭐⭐
 
     double time =
         DateTime.now().millisecondsSinceEpoch / 1000.0;
