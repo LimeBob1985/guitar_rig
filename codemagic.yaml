@@ -11,12 +11,14 @@ workflows:
 
       - name: Build iOS IPA (unsigned)
         script: |
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
+          # Creazione manuale di una cartella Payload per "impacchettare" l'IPA
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos && zip -r unsigned_app.ipa Payload
 
     artifacts:
-      - build/ios/ipa/*.ipa
-      - build/ios/archive/*.ipa
-      - build/ios/**/*.ipa
+      - build/ios/iphoneos/*.ipa
 
     publishing:
       email:
