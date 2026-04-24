@@ -3,31 +3,35 @@ workflows:
     name: "Build iOS IPA (unsigned)"
     environment:
       flutter: stable
-      xcode: latest
+      xcode: latest # Qui Codemagic userà il suo Mac per te
 
     scripts:
       - name: Install Flutter dependencies
         script: flutter pub get
+
+      - name: Prepare iOS Pods (Cruciale per chi non ha Mac)
+        script: |
+          cd ios
+          # Eliminiamo eventuali residui corrotti caricati da Windows
+          rm -rf Pods
+          rm -f Podfile.lock
+          # Forza l'installazione delle librerie native (come audioplayers)
+          pod install
+          cd ..
 
       - name: Build iOS IPA (unsigned)
         script: |
           # 1. Build dell'applicazione
           flutter build ios --release --no-codesign
           
-          # 2. Spostamento nella cartella di output
+          # 2. Struttura Payload per SideStore/AltStore
           cd build/ios/iphoneos
-          
-          # 3. Pulizia e creazione struttura Payload per SideStore
           rm -rf Payload
           mkdir -p Payload
-          
-          # 4. Copia di qualsiasi file .app generato (più sicuro di Runner.app)
           cp -r *.app Payload/
-          
-          # 5. Compressione in formato IPA
           zip -r unsigned_app.ipa Payload
           
-          # 6. Spostamento del file nella root del progetto per facilitare il recupero
+          # 3. Spostamento nella root per il recupero
           mv unsigned_app.ipa ../../../unsigned_app.ipa
 
     artifacts:
