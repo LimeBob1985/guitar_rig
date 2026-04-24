@@ -11,27 +11,27 @@ workflows:
 
       - name: Build iOS IPA (unsigned)
         script: |
-          # 1. Pulizia e Build
+          # 1. Build dell'applicazione
           flutter build ios --release --no-codesign
           
-          # 2. Preparazione cartella Payload
-          # Ci spostiamo nella directory dove Flutter genera il bundle .app
+          # 2. Spostamento nella cartella di output
           cd build/ios/iphoneos
           
-          # Rimuoviamo eventuali residui e creiamo la cartella Payload
+          # 3. Pulizia e creazione struttura Payload per SideStore
           rm -rf Payload
           mkdir -p Payload
           
-          # 3. Copia del bundle .app dentro Payload
-          cp -r Runner.app Payload/
+          # 4. Copia di qualsiasi file .app generato (più sicuro di Runner.app)
+          cp -r *.app Payload/
           
-          # 4. Creazione dell'IPA
-          # È fondamentale usare 'zip -r' stando dentro la cartella iphoneos
-          # in modo che 'Payload' sia nella root del file .ipa
+          # 5. Compressione in formato IPA
           zip -r unsigned_app.ipa Payload
           
+          # 6. Spostamento del file nella root del progetto per facilitare il recupero
+          mv unsigned_app.ipa ../../../unsigned_app.ipa
+
     artifacts:
-      - build/ios/iphoneos/unsigned_app.ipa
+      - "*.ipa"
 
     publishing:
       email:
