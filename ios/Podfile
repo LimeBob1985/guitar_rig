@@ -1,30 +1,20 @@
-# Imposta la versione minima di iOS
 platform :ios, '12.0'
-
-# Questa riga è fondamentale: permette al Podfile di leggere i comandi di Flutter
-plugin 'cocoapods-art', :sources => ['cocoapods'] if Dir.exist?(File.join(Dir.home, '.cocoapods', 'repos', 'cocoapods'))
-
-# Script di supporto di Flutter
-load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
-
-  # Installa i plugin di Flutter correttamente
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    
     target.build_configurations.each do |config|
-      # Abilita il microfono a livello di compilazione
+      # Questa riga abilita il microfono
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_MICROPHONE=1'
       ]
+      # Questa riga evita errori comuni di firma in Codemagic
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
     end
   end
 end
