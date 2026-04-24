@@ -27,9 +27,12 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!-- 🔥 PERMESSO MICROFONO (fondamentale per evitare il crash) -->
     <key>NSMicrophoneUsageDescription</key>
     <string>Questa app usa il microfono per elaborare il segnale della chitarra.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
 
     <key>UIApplicationSceneManifest</key>
     <dict>
