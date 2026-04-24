@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/preset_model.dart';
-import 'audio_manager.dart';
+import '../services/audio_manager.dart';
 import 'package:flutter/services.dart';
 
 enum EffectType { dynamic, temporal, modulation, gain }
