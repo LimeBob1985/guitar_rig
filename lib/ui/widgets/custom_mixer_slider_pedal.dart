@@ -73,6 +73,7 @@ class CustomMixerSliderPedal extends StatelessWidget {
                     onChanged: (newValue) {
                       double snappedValue = newValue;
 
+                      // 🔥 MAGNETE MORBIDO CORRETTO
                       if (newValue.abs() < 0.4 && value != 0.0) {
                         HapticFeedback.lightImpact();
                         snappedValue = 0.0;
@@ -122,7 +123,6 @@ class CustomMixerSliderPedal extends StatelessWidget {
       barrierLabel: "EQ",
       barrierColor: Colors.black54,
 
-      // 🔥 ANIMAZIONE STILE LINE 6
       transitionDuration: const Duration(milliseconds: 180),
       transitionBuilder: (context, anim, _, child) {
         final curved = CurvedAnimation(
@@ -144,7 +144,6 @@ class CustomMixerSliderPedal extends StatelessWidget {
           child: AlertDialog(
             backgroundColor: const Color(0xFF1E1E1E),
 
-            // 🔥 RETTANGOLO PIÙ BASSO
             insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 200),
             contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
 
@@ -157,7 +156,7 @@ class CustomMixerSliderPedal extends StatelessWidget {
 
             content: SizedBox(
               width: 220,
-              height: 150, // 🔥 più basso
+              height: 150,
               child: StatefulBuilder(
                 builder: (context, setState) {
                   return Row(

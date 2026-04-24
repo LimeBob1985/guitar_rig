@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 
 class AudioManager {
@@ -6,13 +5,11 @@ class AudioManager {
 
   // Avvio DSP nativo
   static Future<void> start() async {
-    if (!Platform.isIOS) return; // 🔥 Windows/Android fallback
     await _channel.invokeMethod('start');
   }
 
   // Gain globale (Master DSP)
   static Future<void> setGain(double value) async {
-    if (!Platform.isIOS) return;
     await _channel.invokeMethod(
       'setGain',
       {"value": value},
@@ -21,7 +18,6 @@ class AudioManager {
 
   // Parametri del MIXER (In, Out, Gate, Limit, Volume, Treble, Master)
   static Future<void> setMixer(String name, double value) async {
-    if (!Platform.isIOS) return;
     await _channel.invokeMethod(
       'setMixer',
       {
@@ -33,7 +29,6 @@ class AudioManager {
 
   // Valore del pedale (0–10)
   static Future<void> setPedal(String name, double value) async {
-    if (!Platform.isIOS) return;
     await _channel.invokeMethod(
       'setPedal',
       {
@@ -45,7 +40,6 @@ class AudioManager {
 
   // EQ per pedale (Bass/Mid/Treble)
   static Future<void> setPedalEQ(String pedal, String band, double value) async {
-    if (!Platform.isIOS) return;
     await _channel.invokeMethod(
       'setPedalEQ',
       {

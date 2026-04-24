@@ -83,7 +83,7 @@ class CustomMixerSlider extends StatelessWidget {
                 onChanged: (newValue) {
                   double snappedValue = newValue;
 
-                  // 🔥 MAGNETE MORBIDO SOLO SE fillFromBase = false
+                  // 🔥 MAGNETE MORBIDO (corretto)
                   if (!fillFromBase && newValue.abs() < 0.25) {
                     if (value != 0.0) HapticFeedback.lightImpact();
                     snappedValue = 0.0;

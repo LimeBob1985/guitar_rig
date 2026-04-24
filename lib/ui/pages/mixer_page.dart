@@ -19,11 +19,15 @@ class _MixerPageState extends State<MixerPage> {
       backgroundColor: const Color(0xFF1E1E1E),
       body: Column(
         children: [
-          _buildBlackHeader(state),
+          // 🔥 SAFE AREA FIX — ora il notch non taglia più nulla
+          SafeArea(
+            bottom: false,
+            child: _buildBlackHeader(state),
+          ),
 
           // --- ZONA SUPERIORE: Peak Meter ---
           Expanded(
-            flex: 1, 
+            flex: 1,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -37,11 +41,17 @@ class _MixerPageState extends State<MixerPage> {
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
             child: Column(
               children: [
-                _hRow("Input", state.currentMixer["In"] ?? 0.0,
-                    (v) => state.updateMixer("In", v)),
+                _hRow(
+                  "Input",
+                  state.currentMixer["In"] ?? 0.0,
+                  (v) => state.updateMixer("In", v),
+                ),
                 const SizedBox(height: 6),
-                _hRow("Output", state.currentMixer["Out"] ?? 0.0,
-                    (v) => state.updateMixer("Out", v)),
+                _hRow(
+                  "Output",
+                  state.currentMixer["Out"] ?? 0.0,
+                  (v) => state.updateMixer("Out", v),
+                ),
               ],
             ),
           ),
@@ -61,12 +71,12 @@ class _MixerPageState extends State<MixerPage> {
 
           // --- ZONA INFERIORE: Controlli Verticali ---
           Expanded(
-            flex: 4, 
+            flex: 4,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), 
+              padding: const EdgeInsets.fromLTRB(15, 0, 15, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.stretch, 
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _vControl(
                     "Gain",
@@ -82,7 +92,7 @@ class _MixerPageState extends State<MixerPage> {
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.stretch, 
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _vControl(
                           "Bass",
@@ -133,43 +143,45 @@ class _MixerPageState extends State<MixerPage> {
     );
   }
 
+  // 🔥 HEADER CORRETTO (SafeArea spostata fuori)
   Widget _buildBlackHeader(AppProvider state) {
     return Container(
       width: double.infinity,
       height: 60,
       color: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SafeArea( 
-        bottom: false,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Text(
-              "MIXER",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Text(
+            "MIXER",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: _headerButton(
-                "Mute",
-                () => state.toggleMute(),
-                Colors.red,
-                isFilled: state.isMuted,
-              ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _headerButton(
+              "Mute",
+              () => state.toggleMute(),
+              Colors.red,
+              isFilled: state.isMuted,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _headerButton(String label, VoidCallback onTap, Color color,
-      {bool isFilled = false}) {
+  Widget _headerButton(
+    String label,
+    VoidCallback onTap,
+    Color color, {
+    bool isFilled = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -195,7 +207,7 @@ class _MixerPageState extends State<MixerPage> {
 
   Widget _buildPeakMeter(AppProvider state) {
     return SizedBox(
-      height: 50, // Ingrandito proporzionalmente in altezza come richiesto
+      height: 50,
       child: Row(
         children: List.generate(35, (i) {
           Color color = const Color(0xFF0F0F0F);
