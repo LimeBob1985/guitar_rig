@@ -1,20 +1,26 @@
-platform :ios, '12.0'
+platform :ios, '13.0'
+
+# Questa riga carica i plugin di Flutter (inclusa la musica)
+load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
+
+  # Questa riga installa effettivamente i plugin come audioplayers
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
     target.build_configurations.each do |config|
-      # Questa riga abilita il microfono
+      # Forza il permesso del microfono
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_MICROPHONE=1'
       ]
-      # Questa riga evita errori comuni di firma in Codemagic
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
     end
   end
 end
