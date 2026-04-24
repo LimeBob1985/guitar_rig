@@ -1,28 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart'; // Importato per gestire l'anima dell'app
-import 'package:guitar_rig/ui/pages/mixer_page.dart';
+import 'package:provider/provider.dart'; 
+import 'package:permission_handler/permission_handler.dart'; // <--- AGGIUNTA
 
 import 'ui/pages/mixer_page.dart';
 import 'ui/pages/pedal_page.dart';
 import 'ui/pages/tuner_page.dart';
 import 'ui/pages/presets_page.dart';
 import 'ui/theme/app_colors.dart';
-import 'logic/app_provider.dart'; // Assicurati di aver creato questo file
+import 'logic/app_provider.dart'; 
 
-void main() {
+void main() async { // <--- MODIFICATA (aggiunto async)
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // CHIEDE IL PERMESSO ALL'AVVIO
+  await _checkPermissions(); // <--- AGGIUNTA
   
   // Blocca l'orientamento in verticale per iPhone
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   
   runApp(
-    // Avvolgiamo l'app nel Provider così ogni pagina può accedere ai valori
     ChangeNotifierProvider(
       create: (context) => AppProvider(),
       child: const GuitarRigApp(),
     ),
   );
+}
+
+// FUNZIONE PER IL MICROFONO
+Future<void> _checkPermissions() async {
+  var status = await Permission.microphone.status;
+  if (!status.isGranted) {
+    await Permission.microphone.request();
+  }
 }
 
 class GuitarRigApp extends StatelessWidget {
@@ -52,7 +62,6 @@ class MainNavigationHolder extends StatefulWidget {
 class _MainNavigationHolderState extends State<MainNavigationHolder> {
   int _selectedIndex = 0;
 
-  // Lista delle pagine
   final List<Widget> _pages = [
     const MixerPage(),
     const PedalPage(),
@@ -72,13 +81,10 @@ class _MainNavigationHolderState extends State<MainNavigationHolder> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Usiamo un IndexedStack invece di una lista semplice per non 
-      // ricaricare le pagine ogni volta che cambiamo tab
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
-      
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           canvasColor: const Color(0xFF1A1A1A),
