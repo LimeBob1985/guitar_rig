@@ -1,4 +1,4 @@
-platform :ios, '12.0'
+platform :ios, '13.0'
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -9,7 +9,7 @@ project 'Runner', {
 }
 
 def flutter_root
-  File.expand_path(File.join('..', '..'))
+  File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'flutter'))
 end
 
 load File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
