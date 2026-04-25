@@ -18,14 +18,18 @@ workflows:
 
       - name: Build IPA (correct method)
         script: |
-          flutter build ipa --release --no-codesign
+          # 1. Compila il progetto iOS (genera .app e .xcarchive)
+          flutter build ios --release --no-codesign
+
+          # 2. Crea manualmente l'IPA dalla .app
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -r Runner.ipa Payload
+          cd ../../..
 
     artifacts:
-      # Questo percorso è più preciso per il comando "build ipa"
-      - build/ios/archive/*.xcarchive
-      - build/ios/ipa/*.ipa
-      # Percorso di fallback universale se i precedenti falliscono
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.ipa
+      - build/ios/ipa/Runner.ipa
 
     publishing:
       email:
