@@ -6,26 +6,22 @@ workflows:
       xcode: latest
 
     scripts:
-      - name: Install Flutter dependencies
-        script: flutter pub get
-
-      - name: Build iOS IPA (unsigned)
+      - name: Clean project
         script: |
-          # 1. Build dell'applicazione (Codemagic farà pod install da solo)
-          flutter build ios --release --no-codesign
-          
-          # 2. Struttura Payload per SideStore/AltStore
-          cd build/ios/iphoneos
-          rm -rf Payload
-          mkdir -p Payload
-          cp -r *.app Payload/
-          zip -r unsigned_app.ipa Payload
-          
-          # 3. Spostamento nella root per il recupero
-          mv unsigned_app.ipa ../../../unsigned_app.ipa
+          flutter clean
+          flutter pub get
+          cd ios
+          rm -rf Pods
+          rm -rf Podfile.lock
+          pod install
+          cd ..
+
+      - name: Build IPA (correct method)
+        script: |
+          flutter build ipa --release --no-codesign
 
     artifacts:
-      - "unsigned_app.ipa"
+      - build/ios/ipa/*.ipa
 
     publishing:
       email:
