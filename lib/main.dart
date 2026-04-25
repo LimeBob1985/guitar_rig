@@ -1,38 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart'; 
-import 'package:permission_handler/permission_handler.dart'; // <--- AGGIUNTA
+import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'ui/pages/mixer_page.dart';
 import 'ui/pages/pedal_page.dart';
 import 'ui/pages/tuner_page.dart';
 import 'ui/pages/presets_page.dart';
 import 'ui/theme/app_colors.dart';
-import 'logic/app_provider.dart'; 
+import 'logic/app_provider.dart';
+import 'services/audio_manager.dart'; // <--- IMPORT NECESSARIO
 
-void main() async { // <--- MODIFICATA (aggiunto async)
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // CHIEDE IL PERMESSO ALL'AVVIO
-  await _checkPermissions(); // <--- AGGIUNTA
-  
-  // Blocca l'orientamento in verticale per iPhone
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  
+
+  // Blocca orientamento
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => AppProvider(),
       child: const GuitarRigApp(),
     ),
   );
-}
-
-// FUNZIONE PER IL MICROFONO
-Future<void> _checkPermissions() async {
-  var status = await Permission.microphone.status;
-  if (!status.isGranted) {
-    await Permission.microphone.request();
-  }
 }
 
 class GuitarRigApp extends StatelessWidget {
@@ -69,10 +59,26 @@ class _MainNavigationHolderState extends State<MainNavigationHolder> {
     const PresetsPage(),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _initAudio(); // <--- QUI PARTE IL DSP IN MODO SICURO
+  }
+
+  Future<void> _initAudio() async {
+    final status = await Permission.microphone.request();
+
+    if (status.isGranted) {
+      await AudioManager.start(); // <--- ORA NON CRASHA
+    } else {
+      print("Microphone permission denied");
+    }
+  }
+
   Widget _buildIcon(String assetName, int index) {
     return Image.asset(
       'assets/images/$assetName',
-      width: 18, 
+      width: 18,
       height: 18,
       color: _selectedIndex == index ? Colors.red : const Color(0xFFD3D3D3),
     );
@@ -103,13 +109,13 @@ class _MainNavigationHolderState extends State<MainNavigationHolder> {
           selectedFontSize: 8,
           unselectedFontSize: 8,
           selectedLabelStyle: const TextStyle(
-            fontFamily: 'MyriadPro', 
-            fontSize: 8, 
+            fontFamily: 'MyriadPro',
+            fontSize: 8,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
           unselectedLabelStyle: const TextStyle(
-            fontFamily: 'MyriadPro', 
+            fontFamily: 'MyriadPro',
             fontSize: 8,
             letterSpacing: 0.5,
           ),
