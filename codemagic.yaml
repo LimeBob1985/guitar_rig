@@ -21,7 +21,11 @@ workflows:
           flutter build ipa --release --no-codesign
 
     artifacts:
+      # Questo percorso è più preciso per il comando "build ipa"
+      - build/ios/archive/*.xcarchive
       - build/ios/ipa/*.ipa
+      # Percorso di fallback universale se i precedenti falliscono
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/**/*.ipa
 
     publishing:
       email:
