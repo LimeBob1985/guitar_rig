@@ -3,25 +3,15 @@ workflows:
     name: "Build iOS IPA (unsigned)"
     environment:
       flutter: stable
-      xcode: latest # Qui Codemagic userà il suo Mac per te
+      xcode: latest
 
     scripts:
       - name: Install Flutter dependencies
         script: flutter pub get
 
-      - name: Prepare iOS Pods (Cruciale per chi non ha Mac)
-        script: |
-          cd ios
-          # Eliminiamo eventuali residui corrotti caricati da Windows
-          rm -rf Pods
-          rm -f Podfile.lock
-          # Forza l'installazione delle librerie native (come audioplayers)
-          pod install
-          cd ..
-
       - name: Build iOS IPA (unsigned)
         script: |
-          # 1. Build dell'applicazione
+          # 1. Build dell'applicazione (Codemagic farà pod install da solo)
           flutter build ios --release --no-codesign
           
           # 2. Struttura Payload per SideStore/AltStore
@@ -35,7 +25,7 @@ workflows:
           mv unsigned_app.ipa ../../../unsigned_app.ipa
 
     artifacts:
-      - "*.ipa"
+      - "unsigned_app.ipa"
 
     publishing:
       email:
