@@ -6,9 +6,9 @@ final class AudioEngine {
     static let shared = AudioEngine()
 
     private let engine = AVAudioEngine()
-    private let inputNode: AVAudioInputNode
-    private let mainMixer: AVAudioMixerNode
-    private let outputNode: AVAudioOutputNode
+    private var inputNode: AVAudioInputNode?
+    private var mainMixer: AVAudioMixerNode?
+    private var outputNode: AVAudioOutputNode?
 
     private var flutterChannel: FlutterMethodChannel?
 
@@ -59,17 +59,8 @@ final class AudioEngine {
     private var isStarted = false
 
     private init() {
-        inputNode = engine.inputNode
-        mainMixer = engine.mainMixerNode
-        outputNode = engine.outputNode
-
-        let format = inputNode.outputFormat(forBus: 0)
-        engine.connect(inputNode, to: mainMixer, format: format)
-        engine.connect(mainMixer, to: outputNode, format: format)
-
-        mainMixer.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, time in
-            self?.process(buffer: buffer)
-        }
+        // ⚠️ NON tocchiamo inputNode / mainMixer / outputNode qui.
+        // Il grafo viene creato SOLO in start(), dopo che AVAudioSession è attivo.
     }
 
     func setFlutterChannel(_ channel: FlutterMethodChannel) {
@@ -78,18 +69,47 @@ final class AudioEngine {
 
     func start() {
         guard !isStarted else { return }
+
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playAndRecord, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord,
+                                    options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
+            try session.setActive(true)
+
+            // Ora è sicuro accedere ai nodi
+            let inNode = engine.inputNode
+            let mixer = engine.mainMixerNode
+            let outNode = engine.outputNode
+
+            let format = inNode.outputFormat(forBus: 0)
+
+            engine.disconnectNodeInput(mixer)
+            engine.disconnectNodeInput(outNode)
+
+            engine.connect(inNode, to: mixer, format: format)
+            engine.connect(mixer, to: outNode, format: format)
+
+            mixer.removeTap(onBus: 0)
+            mixer.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, time in
+                self?.process(buffer: buffer)
+            }
+
             try engine.start()
-            isStarted = true
+
+            self.inputNode = inNode
+            self.mainMixer = mixer
+            self.outputNode = outNode
+            self.isStarted = true
+
         } catch {
             print("AudioEngine start error: \(error)")
         }
     }
 
     func setExternalGain(_ value: Float) { externalGain = max(0, min(1, value)) }
-    func setMixerParam(name: String, value: Float) { switch name {
+
+    func setMixerParam(name: String, value: Float) {
+        switch name {
         case "In": mixerIn = value
         case "Out": mixerOut = value
         case "Gate": mixerGate = value
@@ -98,9 +118,11 @@ final class AudioEngine {
         case "Treble": mixerTreble = value
         case "Master": mixerMaster = value
         default: break
-    }}
+        }
+    }
 
     func setPedalValue(name: String, value: Float) { pedalValues[name] = value }
+
     func setPedalEQ(pedal: String, band: String, value: Float) {
         guard var eq = pedalEQ[pedal] else { return }
         eq[band] = value
