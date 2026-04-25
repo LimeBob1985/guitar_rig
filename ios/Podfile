@@ -1,12 +1,24 @@
-platform :ios, '13.0'
+platform :ios, '12.0'
 
-load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  File.expand_path(File.join('..', '..'))
+end
+
+load File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_all_ios_pods(File.dirname(File.realpath(__FILE__)))
 end
 
 post_install do |installer|

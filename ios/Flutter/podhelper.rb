@@ -1,3 +1,5 @@
+require 'yaml'
+
 def flutter_install_all_ios_pods(ios_application_path = nil)
   flutter_application_path ||= File.join(ios_application_path, '..')
   pubspec = YAML.load_file(File.join(flutter_application_path, 'pubspec.yaml'))
