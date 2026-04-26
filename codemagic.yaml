@@ -16,9 +16,16 @@ workflows:
           pod install
           cd ..
 
-      - name: Build IPA with Flutter
+      - name: Build archive
         script: |
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
+
+      - name: Export IPA manually
+        script: |
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
