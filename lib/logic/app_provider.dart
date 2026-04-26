@@ -24,27 +24,27 @@ class GuitarEffect {
 }
 
 class AppProvider extends ChangeNotifier {
+  // --- PEAK LEVEL REALE DAL DSP ---
   int currentPeakLevel = 0;
-  Timer? _peakTimer;
 
   // --- LOGICA TUNER ---
   bool isTunerActive = false;
   double currentFrequency = 0.0;
   String currentNote = "-";
 
-  // ⭐ MUTE SEPARATI
+  // MUTE
   bool isMuted = false;
   bool isTunerMuted = false;
 
   // OFFSET ACCORDATURA
   int tuningOffset = 0;
 
-  // Gain globale calcolato dal DSP (0–1)
+  // Gain globale DSP
   double _currentGain = 1.0;
 
   static const List<String> noteOrder = [
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B"
+    "C","C#","D","D#","E","F",
+    "F#","G","G#","A","A#","B"
   ];
 
   String applyTuningOffset(String note, int offset) {
@@ -65,6 +65,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- MIXER ---
   Map<String, double> currentMixer = {
     "In": 0.0,
     "Out": 0.0,
@@ -75,6 +76,7 @@ class AppProvider extends ChangeNotifier {
     "Master": 10.0,
   };
 
+  // --- PEDALI ---
   Map<String, double> currentPedals = {
     "Acoustic IR": 0.0,
     "Clean": 0.0,
@@ -107,10 +109,7 @@ class AppProvider extends ChangeNotifier {
     "Noise": GuitarEffect(name: "Noise", type: EffectType.dynamic),
   };
 
-  List<PresetModel> savedPresets = [];
-  int? editingIndex;
-
-  // ⭐ EQ PER-PEDALE
+  // --- EQ PER-PEDALE ---
   Map<String, Map<String, double>> pedalEQ = {
     "Acoustic IR": {"Bass": 0.0, "Mid": 0.0, "Treble": 0.0},
     "Clean": {"Bass": 0.0, "Mid": 0.0, "Treble": 0.0},
@@ -127,104 +126,68 @@ class AppProvider extends ChangeNotifier {
     "Noise": {"Bass": 0.0, "Mid": 0.0, "Treble": 0.0},
   };
 
+  // --- PRESET ---
+  List<PresetModel> savedPresets = [];
+  int? editingIndex;
+
   AppProvider() {
     _loadPresetsFromDisk();
     AudioManager.start();
 
-    // ⭐ LISTENER TUNER NATIVO
     const MethodChannel("audio_channel").setMethodCallHandler((call) async {
-      if (call.method == "tunerData") {
-        currentFrequency = (call.arguments["frequency"] as num).toDouble();
-        currentNote = call.arguments["note"] as String;
-        notifyListeners();
+      switch (call.method) {
+        case "tunerData":
+          currentFrequency = (call.arguments["frequency"] as num).toDouble();
+          currentNote = call.arguments["note"] as String;
+          notifyListeners();
+          break;
+
+        case "meterData":
+          final peak = (call.arguments["peak"] as num).toDouble();
+
+          if (isMuted || isTunerActive || isTunerMuted) {
+            currentPeakLevel = 0;
+          } else {
+            currentPeakLevel = (peak * 35).clamp(0, 35).toInt();
+          }
+          notifyListeners();
+          break;
       }
     });
   }
 
-  // --- PERSISTENZA ---
-  Future<void> _savePresetsToDisk() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String encodedData =
-        json.encode(savedPresets.map((p) => p.toMap()).toList());
-    await prefs.setString('guitar_presets_permanent', encodedData);
-  }
-
-  Future<void> _loadPresetsFromDisk() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? encodedData = prefs.getString('guitar_presets_permanent');
-
-    if (encodedData != null) {
-      final List<dynamic> decodedData = json.decode(encodedData);
-      savedPresets =
-          decodedData.map((item) => PresetModel.fromMap(item)).toList();
-      notifyListeners();
-    }
-  }
-
-  // --- TUNER ---
+  // --- MUTE ---
   void toggleTuner() {
     isTunerActive = !isTunerActive;
     _syncAudio();
     notifyListeners();
   }
 
-  // --- MUTE MIXER ---
   void toggleMute() {
     isMuted = !isMuted;
     _syncAudio();
     notifyListeners();
   }
 
-  // --- MUTE TUNER ---
   void toggleTunerMute() {
     isTunerMuted = !isTunerMuted;
     _syncAudio();
     notifyListeners();
   }
 
-  // --- PEAK METER ---
-  void _startPeakMeter() {
-    _peakTimer?.cancel();
-    _peakTimer =
-        Timer.periodic(const Duration(milliseconds: 80), (timer) {
-      if (isMuted || isTunerActive || isTunerMuted) {
-        currentPeakLevel = 0;
-      } else {
-        double inFactor = ((currentMixer["In"] ?? 0.0) + 50) / 100;
-        double gainStack =
-            ((currentPedals["Clean"] ?? 0.0) / 20) +
-            ((currentPedals["Overdrive"] ?? 0.0) / 15) +
-            ((currentPedals["Crunch"] ?? 0.0) / 12) +
-            ((currentPedals["Distortion"] ?? 0.0) / 8);
-
-        double gainFactor =
-            1.0 + ((currentMixer["Gate"] ?? 0.0) / 10) + gainStack;
-        double signalSwing =
-            0.4 + (math.Random().nextDouble() * 0.6);
-        double rawLevel =
-            35 * inFactor * gainFactor * signalSwing;
-        currentPeakLevel = rawLevel.clamp(0, 35).toInt();
-      }
-      notifyListeners();
-    });
-  }
-
-  // --- AUDIO INPUT REALE ---
-  void _processAudioInput(List<double> samples) {
+  // --- SYNC DSP ---
+  void _syncAudio() {
     if (isMuted || isTunerMuted || isTunerActive) {
-      currentPeakLevel = 0;
-      notifyListeners();
+      _currentGain = 0.0;
+      AudioManager.setGain(0.0);
       return;
     }
 
-    double peak = 0.0;
-    for (final s in samples) {
-      double v = (s * _currentGain).abs();
-      if (v > peak) peak = v;
-    }
-    currentPeakLevel = (peak * 35).clamp(0, 35).toInt();
+    double master = ((currentMixer["Master"] ?? 10.0) / 10.0)
+        .clamp(0.0, 1.0);
 
-    notifyListeners();
+    _currentGain = master;
+    AudioManager.setGain(master);
   }
 
   // --- UPDATE PARAMETRI ---
@@ -252,22 +215,26 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- DSP (ora delegato al DSP nativo) ---
-  void _syncAudio() {
-    if (isMuted || isTunerMuted || isTunerActive) {
-      _currentGain = 0.0;
-      AudioManager.setGain(0.0);
-      return;
-    }
-
-    double master = ((currentMixer["Master"] ?? 10.0) / 10.0)
-        .clamp(0.0, 1.0);
-
-    _currentGain = master;
-    AudioManager.setGain(master);
+  // --- PRESET ---
+  Future<void> _savePresetsToDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedData =
+        json.encode(savedPresets.map((p) => p.toMap()).toList());
+    await prefs.setString('guitar_presets_permanent', encodedData);
   }
 
-  // --- PRESET ---
+  Future<void> _loadPresetsFromDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? encodedData = prefs.getString('guitar_presets_permanent');
+
+    if (encodedData != null) {
+      final List<dynamic> decodedData = json.decode(encodedData);
+      savedPresets =
+          decodedData.map((item) => PresetModel.fromMap(item)).toList();
+      notifyListeners();
+    }
+  }
+
   void saveCurrentAsPreset(String name) {
     String date =
         "${DateTime.now().day.toString().padLeft(2, '0')}.${DateTime.now().month.toString().padLeft(2, '0')}.${DateTime.now().year.toString().substring(2)}";
@@ -322,7 +289,6 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _peakTimer?.cancel();
     super.dispose();
   }
 }
