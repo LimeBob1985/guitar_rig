@@ -18,8 +18,8 @@ workflows:
 
       - name: Build for Real Device (ARM64)
         script: |
-          # Questo comando è fondamentale: compila per il processore dell'iPhone
-          flutter build ios --release --no-codesign --sdk iphoneos
+          # Solo release e no-codesign. Niente flag extra.
+          flutter build ios --release --no-codesign
 
       - name: Export IPA manually
         script: |
@@ -33,20 +33,20 @@ workflows:
             exit 1
           fi
 
-          # Vedrai il peso reale nei log di Codemagic
           echo "📏 Peso bundle: $(du -sh "$APP_PATH")"
 
           rm -rf "$PAYLOAD_PATH"
           mkdir -p "$PAYLOAD_PATH"
           cp -r "$APP_PATH" "$PAYLOAD_PATH/"
 
-          # Compressione con mantenimento link simbolici (-y)
           cd build/ios/iphoneos
           zip -r -y "$IPA_NAME" Payload
           cd ../../..
 
           mkdir -p "$OUTPUT_DIR"
           mv "build/ios/iphoneos/$IPA_NAME" "$OUTPUT_DIR/"
+          
+          echo "✅ IPA creato."
 
     artifacts:
       - build/ios/ipa/*.ipa
