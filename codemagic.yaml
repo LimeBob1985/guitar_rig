@@ -16,47 +16,37 @@ workflows:
           pod install
           cd ..
 
-      - name: Build archive
+      - name: Build for Real Device (ARM64)
         script: |
-          # Usiamo 'build ios' per generare il bundle reale dell'app. 
-          # --release garantisce che vengano inclusi i binari per le prestazioni (AOT).
-          flutter build ios --release --no-codesign
+          # Questo comando è fondamentale: compila per il processore dell'iPhone
+          flutter build ios --release --no-codesign --sdk iphoneos
 
       - name: Export IPA manually
         script: |
-          # 1. Definiamo i percorsi
           APP_PATH="build/ios/iphoneos/Runner.app"
           PAYLOAD_PATH="build/ios/iphoneos/Payload"
           IPA_NAME="guitar_rig.ipa"
           OUTPUT_DIR="build/ios/ipa"
 
-          # 2. Verifica se il bundle esiste
           if [ ! -d "$APP_PATH" ]; then
-            echo "❌ Errore critico: Runner.app non trovato in $APP_PATH. Il build di Flutter è fallito."
+            echo "❌ Runner.app non trovato!"
             exit 1
           fi
 
-          echo "📦 Runner.app trovato. Inizio creazione del pacchetto IPA..."
+          # Vedrai il peso reale nei log di Codemagic
+          echo "📏 Peso bundle: $(du -sh "$APP_PATH")"
 
-          # 3. Pulizia e creazione struttura IPA
           rm -rf "$PAYLOAD_PATH"
           mkdir -p "$PAYLOAD_PATH"
-          
-          # Copia il bundle dell'app nella cartella Payload (fondamentale per lo standard iOS)
           cp -r "$APP_PATH" "$PAYLOAD_PATH/"
 
-          # 4. Compressione (Zippaggio)
-          # Il flag -y è VITALE: mantiene i link simbolici dei framework Flutter.
-          # Senza -y l'app peserà poco e crasherà subito.
+          # Compressione con mantenimento link simbolici (-y)
           cd build/ios/iphoneos
           zip -r -y "$IPA_NAME" Payload
           cd ../../..
 
-          # 5. Organizzazione finale per gli Artifacts
           mkdir -p "$OUTPUT_DIR"
           mv "build/ios/iphoneos/$IPA_NAME" "$OUTPUT_DIR/"
-          
-          echo "✅ IPA creato con successo in $OUTPUT_DIR/$IPA_NAME"
 
     artifacts:
       - build/ios/ipa/*.ipa

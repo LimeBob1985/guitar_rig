@@ -18,26 +18,26 @@
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!-- PERMESSO MICROFONO -->
     <key>NSMicrophoneUsageDescription</key>
     <string>Questa app usa il microfono per processare il segnale della chitarra.</string>
 
-    <!-- BACKGROUND AUDIO -->
     <key>UIBackgroundModes</key>
     <array>
         <string>audio</string>
     </array>
 
-    <!-- SOLO LaunchScreen, niente storyboard principale -->
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
 
-    <!-- Orientamenti -->
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -45,12 +45,9 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
-    <key>UISupportedInterfaceOrientations~ipad</key>
-    <array>
-        <string>UIInterfaceOrientationPortrait</string>
-        <string>UIInterfaceOrientationPortraitUpsideDown</string>
-        <string>UIInterfaceOrientationLandscapeLeft</string>
-        <string>UIInterfaceOrientationLandscapeRight</string>
-    </array>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
 </dict>
 </plist>
