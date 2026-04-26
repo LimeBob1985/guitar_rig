@@ -219,7 +219,7 @@ final class AudioEngine {
             engine.connect(mixer, to: outNode, format: format)
 
             mixer.removeTap(onBus: 0)
-            mixer.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, time in
+            mixer.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
                 self?.process(buffer: buffer)
             }
 
@@ -406,34 +406,59 @@ final class AudioEngine {
                 var eqSample = s
                 for (name, val) in pedalValues {
                     guard val > 0 else { continue }
-                    guard let filtersL = (c == 0 ? pedalEQFiltersL[name] : pedalEQFiltersR[name]) else { continue }
                     let factor = val / 10
-                    var tmp = eqSample
-                    tmp = filtersL.low.process(tmp)
-                    tmp = filtersL.mid.process(tmp)
-                    tmp = filtersL.high.process(tmp)
-                    eqSample = eqSample * (1 - factor) + tmp * factor
+
+                    if c == 0, var filters = pedalEQFiltersL[name] {
+                        var tmp = eqSample
+                        tmp = filters.low.process(tmp)
+                        tmp = filters.mid.process(tmp)
+                        tmp = filters.high.process(tmp)
+                        pedalEQFiltersL[name] = filters
+                        eqSample = eqSample * (1 - factor) + tmp * factor
+                    } else if c == 1, var filters = pedalEQFiltersR[name] {
+                        var tmp = eqSample
+                        tmp = filters.low.process(tmp)
+                        tmp = filters.mid.process(tmp)
+                        tmp = filters.high.process(tmp)
+                        pedalEQFiltersR[name] = filters
+                        eqSample = eqSample * (1 - factor) + tmp * factor
+                    }
                 }
                 s = eqSample
 
                 // Modulation LFOs
-                let tChorus = lfoChorus.next(rate: 0.8 + (pedalValues["Chorus"] ?? 0) * 0.15,
-                                             sampleRate: sampleRate)
-                let tFlanger = lfoFlanger.next(rate: 0.3 + (pedalValues["Flanger"] ?? 0) * 0.25,
-                                               sampleRate: sampleRate)
-                let tTrem = lfoTremolo.next(rate: 2 + (pedalValues["Tremolo"] ?? 0) * 0.6,
-                                            sampleRate: sampleRate)
-                let tRotAmp = lfoRotaryAmp.next(rate: 1.2 + (pedalValues["Rotary"] ?? 0) * 0.3,
-                                                sampleRate: sampleRate)
-                let tRotPan = lfoRotaryPan.next(rate: 1.2 + (pedalValues["Rotary"] ?? 0) * 0.3,
-                                                sampleRate: sampleRate)
+                let chorusVal = pedalValues["Chorus"] ?? 0
+                let flangerVal = pedalValues["Flanger"] ?? 0
+                let tremVal = pedalValues["Tremolo"] ?? 0
+                let rotaryVal = pedalValues["Rotary"] ?? 0
+
+                let tChorus = lfoChorus.next(
+                    rate: 0.8 as Float + chorusVal * (0.15 as Float),
+                    sampleRate: sampleRate
+                )
+                let tFlanger = lfoFlanger.next(
+                    rate: 0.3 as Float + flangerVal * (0.25 as Float),
+                    sampleRate: sampleRate
+                )
+                let tTrem = lfoTremolo.next(
+                    rate: 2.0 as Float + tremVal * (0.6 as Float),
+                    sampleRate: sampleRate
+                )
+                let tRotAmp = lfoRotaryAmp.next(
+                    rate: 1.2 as Float + rotaryVal * (0.3 as Float),
+                    sampleRate: sampleRate
+                )
+                let tRotPan = lfoRotaryPan.next(
+                    rate: 1.2 as Float + rotaryVal * (0.3 as Float),
+                    sampleRate: sampleRate
+                )
 
                 // Chorus (modulated delay)
-                if let v = pedalValues["Chorus"], v > 0 {
-                    let depth = 0.002 + 0.002 * (v / 10)
-                    let base = 0.008
+                if chorusVal > 0 {
+                    let depth = 0.002 as Float + 0.002 as Float * (chorusVal / 10)
+                    let base = 0.008 as Float
                     let time = base + depth * tChorus
-                    let mix: Float = 0.25 + 0.4 * (v / 10)
+                    let mix: Float = 0.25 as Float + 0.4 as Float * (chorusVal / 10)
                     if c == 0 {
                         s = chorusDelayL.process(input: s, time: time, feedback: 0.1, mix: mix)
                     } else {
@@ -442,12 +467,12 @@ final class AudioEngine {
                 }
 
                 // Flanger (short comb delay)
-                if let v = pedalValues["Flanger"], v > 0 {
-                    let depth = 0.0008 + 0.0008 * (v / 10)
-                    let base = 0.001
+                if flangerVal > 0 {
+                    let depth = 0.0008 as Float + 0.0008 as Float * (flangerVal / 10)
+                    let base = 0.001 as Float
                     let time = base + depth * tFlanger
-                    let mix: Float = 0.3 + 0.4 * (v / 10)
-                    let fb: Float = 0.2 + 0.4 * (v / 10)
+                    let mix: Float = 0.3 as Float + 0.4 as Float * (flangerVal / 10)
+                    let fb: Float = 0.2 as Float + 0.4 as Float * (flangerVal / 10)
                     if c == 0 {
                         s = flangerDelayL.process(input: s, time: time, feedback: fb, mix: mix)
                     } else {
@@ -456,34 +481,34 @@ final class AudioEngine {
                 }
 
                 // Tremolo (amp modulation)
-                if let v = pedalValues["Tremolo"], v > 0 {
-                    let depth = min(0.95, v / 10)
+                if tremVal > 0 {
+                    let depth = min(0.95 as Float, tremVal / 10)
                     let lfo = (tTrem + 1) / 2
                     let gain = 1 - depth * lfo
                     s *= gain
                 }
 
                 // Rotary (amp + pan)
-                if let v = pedalValues["Rotary"], v > 0 {
-                    let depthAmp = 0.2 + 0.4 * (v / 10)
-                    let depthPan = 0.4 + 0.4 * (v / 10)
+                if rotaryVal > 0 {
+                    let depthAmp = 0.2 as Float + 0.4 as Float * (rotaryVal / 10)
+                    let depthPan = 0.4 as Float + 0.4 as Float * (rotaryVal / 10)
                     let ampMod = 1 - depthAmp * ((tRotAmp + 1) / 2)
                     let pan = depthPan * tRotPan
                     let panL = cos((pan + 1) * .pi / 4)
                     let panR = sin((pan + 1) * .pi / 4)
                     s *= ampMod
                     if c == 0 {
-                        s *= panL
+                        s *= Float(panL)
                     } else {
-                        s *= panR
+                        s *= Float(panR)
                     }
                 }
 
                 // Delay (main echo)
                 if let v = pedalValues["Delay"], v > 0 {
-                    let time: Float = 0.15 + 0.6 * (v / 10)
-                    let fb: Float = 0.15 + 0.6 * (v / 10)
-                    let mix: Float = 0.15 + 0.4 * (v / 10)
+                    let time: Float = 0.15 as Float + 0.6 as Float * (v / 10)
+                    let fb: Float = 0.15 as Float + 0.6 as Float * (v / 10)
+                    let mix: Float = 0.15 as Float + 0.4 as Float * (v / 10)
                     if c == 0 {
                         s = mainDelayL.process(input: s, time: time, feedback: fb, mix: mix)
                     } else {
@@ -493,9 +518,9 @@ final class AudioEngine {
 
                 // Reverb (simple feedback delay wash)
                 if let v = pedalValues["Reverb"], v > 0 {
-                    let time: Float = 0.25 + 0.7 * (v / 10)
-                    let fb: Float = 0.3 + 0.55 * (v / 10)
-                    let mix: Float = 0.12 + 0.35 * (v / 10)
+                    let time: Float = 0.25 as Float + 0.7 as Float * (v / 10)
+                    let fb: Float = 0.3 as Float + 0.55 as Float * (v / 10)
+                    let mix: Float = 0.12 as Float + 0.35 as Float * (v / 10)
                     if c == 0 {
                         s = reverbDelayL.process(input: s, time: time, feedback: fb, mix: mix)
                     } else {
@@ -506,9 +531,7 @@ final class AudioEngine {
                 // Acoustic IR (placeholder: gentle cab-like EQ)
                 if let v = pedalValues["Acoustic IR"], v > 0 {
                     let factor = v / 10
-                    // semplice "cab sim" grossolana
                     var cab = s
-                    // taglia un po' di bassi estremi e alti estremi
                     cab *= 0.9
                     s = s * (1 - factor) + cab * factor
                 }
@@ -520,7 +543,7 @@ final class AudioEngine {
                 s *= outGain * master * externalGain
 
                 // Limiter
-                let limit = max(0.1, 1 - mixerLimit / 40)
+                let limit = max(0.1 as Float, 1 - mixerLimit / 40)
                 if s > limit { s = limit }
                 if s < -limit { s = -limit }
 
