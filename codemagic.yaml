@@ -22,8 +22,18 @@ workflows:
 
       - name: Export IPA manually
         script: |
+          # Trova automaticamente il .xcarchive ovunque Flutter lo metta
+          ARCHIVE_PATH=$(find build/ios -name "*.xcarchive" | head -n 1)
+
+          if [ -z "$ARCHIVE_PATH" ]; then
+            echo "❌ Nessun archivio trovato. Flutter non ha generato lo .xcarchive."
+            exit 1
+          fi
+
+          echo "📦 Archivio trovato: $ARCHIVE_PATH"
+
           xcodebuild -exportArchive \
-            -archivePath build/ios/archive/Runner.xcarchive \
+            -archivePath "$ARCHIVE_PATH" \
             -exportPath build/ios/ipa \
             -exportOptionsPlist ios/ExportOptions.plist
 
